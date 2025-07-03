@@ -22,6 +22,12 @@ public class LeaderboardView : MonoBehaviour
     [SerializeField]
     private float animationDuration = 0.6f;
 
+    [SerializeField]
+    private int minRankChangeForScrollAnimation = 5; // Minimum rank change to trigger scroll animation
+
+    [SerializeField]
+    private int maxAnimationSteps = 15; // Maximum number of animation steps
+
     [Header("Layout")]
     [SerializeField]
     private Transform entriesContainer;
@@ -210,12 +216,9 @@ public class LeaderboardView : MonoBehaviour
         DataManager.Instance.UpdateScoresRandomly();
         var newSortedPlayers = DataManager.Instance.GetSortedPlayers();
         int newPlayerIndex = newSortedPlayers.FindIndex(p => p.IsCurrentPlayer);
-        int newStartIndex = CalculateStartIndex(newPlayerIndex);
 
-        // Perform the update
-        yield return StartCoroutine(
-            PerformLeaderboardUpdate(newSortedPlayers, newPlayerIndex, newStartIndex)
-        );
+        // Perform the update with scroll animation if needed
+        yield return StartCoroutine(PerformLeaderboardUpdate(newSortedPlayers, newPlayerIndex));
 
         // Update state
         currentPlayers = new List<PlayerData>(newSortedPlayers);
@@ -225,10 +228,64 @@ public class LeaderboardView : MonoBehaviour
         updateButton.SetInteractable(true);
     }
 
-    private IEnumerator PerformLeaderboardUpdate(
+    private IEnumerator PerformLeaderboardUpdate(List<PlayerData> newPlayers, int newPlayerIndex)
+    {
+        int oldPlayerIndex = currentPlayerIndex;
+        int rankChange = Mathf.Abs(newPlayerIndex - oldPlayerIndex);
+
+        // Use scroll-through animation for significant rank changes
+        if (rankChange >= minRankChangeForScrollAnimation && currentPlayerEntry != null)
+        {
+            yield return StartCoroutine(
+                PerformScrollThroughAnimation(newPlayers, oldPlayerIndex, newPlayerIndex)
+            );
+        }
+        else
+        {
+            // Use existing logic for small changes
+            int newStartIndex = CalculateStartIndex(newPlayerIndex);
+            yield return StartCoroutine(
+                PerformStandardUpdate(newPlayers, newPlayerIndex, newStartIndex)
+            );
+        }
+    }
+
+    private IEnumerator PerformScrollThroughAnimation(
         List<PlayerData> newPlayers,
-        int newPlayerIndex,
-        int newStartIndex
+        int oldPlayerIndex,
+        int newPlayerIndex
+    )
+    {
+        // Calculate animation parameters
+        int totalSteps = Mathf.Min(Mathf.Abs(newPlayerIndex - oldPlayerIndex), maxAnimationSteps);
+        float stepDuration = animationDuration / totalSteps;
+
+        // Animate through intermediate positions
+        for (int step = 1; step <= totalSteps; step++)
+        {
+            float progress = (float)step / totalSteps;
+            int intermediateIndex = Mathf.RoundToInt(
+                Mathf.Lerp(oldPlayerIndex, newPlayerIndex, progress)
+            );
+            int intermediateStartIndex = CalculateStartIndex(intermediateIndex);
+
+            // Update view for this intermediate position
+            yield return StartCoroutine(
+                UpdateViewForAnimationStep(newPlayers, intermediateStartIndex, stepDuration)
+            );
+        }
+
+        // Final positioning with highlight
+        int finalStartIndex = CalculateStartIndex(newPlayerIndex);
+        yield return StartCoroutine(
+            PerformStandardUpdate(newPlayers, newPlayerIndex, finalStartIndex, true)
+        );
+    }
+
+    private IEnumerator UpdateViewForAnimationStep(
+        List<PlayerData> newPlayers,
+        int startIndex,
+        float duration
     )
     {
         // Create mapping of old entries by player ID
@@ -245,15 +302,15 @@ public class LeaderboardView : MonoBehaviour
         activeEntries.Clear();
 
         // Calculate new visible range
-        int endIndex = Mathf.Min(newPlayers.Count, newStartIndex + visibleEntries);
+        int endIndex = Mathf.Min(newPlayers.Count, startIndex + visibleEntries);
 
-        // Phase 1: Update and position all entries
+        // Update and position all entries
         var animations = new List<Tween>();
 
-        for (int i = newStartIndex; i < endIndex; i++)
+        for (int i = startIndex; i < endIndex; i++)
         {
             var player = newPlayers[i];
-            int slotIndex = i - newStartIndex;
+            int slotIndex = i - startIndex;
             Vector3 targetPosition = slotPositions[slotIndex];
 
             LeaderboardEntry entry;
@@ -263,7 +320,96 @@ public class LeaderboardView : MonoBehaviour
                 // Reuse existing entry
                 entry = entryMap[player.id];
                 entry.UpdateData(player);
-                entryMap.Remove(player.id); // Remove from map so we know it's used
+                entryMap.Remove(player.id);
+            }
+            else
+            {
+                // Create new entry
+                entry = entryPool.Get();
+                entry.SetupEntry(player, player.IsCurrentPlayer);
+            }
+
+            activeEntries.Add(entry);
+
+            if (player.IsCurrentPlayer)
+            {
+                currentPlayerEntry = entry;
+            }
+
+            // Animate to target position
+            if (Vector3.Distance(entry.transform.position, targetPosition) > 0.1f)
+            {
+                var tween = entry.AnimateToPosition(targetPosition, duration);
+                animations.Add(tween);
+            }
+            else
+            {
+                entry.transform.position = targetPosition;
+            }
+        }
+
+        // Return unused entries to pool
+        foreach (var unusedEntry in entryMap.Values)
+        {
+            entryPool.Return(unusedEntry);
+        }
+
+        // Wait for animations to complete
+        if (animations.Count > 0)
+        {
+            yield return new WaitForSeconds(duration);
+        }
+
+        // Ensure positions are exact to prevent overlaps
+        for (int i = 0; i < activeEntries.Count; i++)
+        {
+            if (i < slotPositions.Count)
+            {
+                activeEntries[i].transform.position = slotPositions[i];
+            }
+        }
+    }
+
+    private IEnumerator PerformStandardUpdate(
+        List<PlayerData> newPlayers,
+        int playerIndex,
+        int startIndex,
+        bool showHighlight = false
+    )
+    {
+        // Create mapping of old entries by player ID
+        var entryMap = new Dictionary<string, LeaderboardEntry>();
+        foreach (var entry in activeEntries)
+        {
+            if (entry.PlayerData != null)
+            {
+                entryMap[entry.PlayerData.id] = entry;
+            }
+        }
+
+        // Clear active entries list but keep the objects
+        activeEntries.Clear();
+
+        // Calculate new visible range
+        int endIndex = Mathf.Min(newPlayers.Count, startIndex + visibleEntries);
+
+        // Phase 1: Update and position all entries
+        var animations = new List<Tween>();
+
+        for (int i = startIndex; i < endIndex; i++)
+        {
+            var player = newPlayers[i];
+            int slotIndex = i - startIndex;
+            Vector3 targetPosition = slotPositions[slotIndex];
+
+            LeaderboardEntry entry;
+
+            if (entryMap.ContainsKey(player.id))
+            {
+                // Reuse existing entry
+                entry = entryMap[player.id];
+                entry.UpdateData(player);
+                entryMap.Remove(player.id);
             }
             else
             {
@@ -297,8 +443,8 @@ public class LeaderboardView : MonoBehaviour
             entryPool.Return(unusedEntry);
         }
 
-        // Phase 2: Highlight current player if they moved
-        if (currentPlayerEntry != null)
+        // Phase 2: Highlight current player if requested
+        if (showHighlight && currentPlayerEntry != null)
         {
             currentPlayerEntry.PlayHighlightAnimation();
         }
