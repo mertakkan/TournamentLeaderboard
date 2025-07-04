@@ -54,9 +54,6 @@ public class LeaderboardEntry : MonoBehaviour
 
     [Header("Text Settings")]
     [SerializeField]
-    private int maxNicknameLength = 10;
-
-    [SerializeField]
     private float nicknameMaxWidth = 2.5f;
 
     [Header("Rank Text Scaling")]
