@@ -10,7 +10,7 @@ public class UpdateButton : MonoBehaviour
     private SpriteRenderer backgroundRenderer;
 
     [SerializeField]
-    private SpriteRenderer iconRenderer; // Add refresh icon
+    private SpriteRenderer iconRenderer;
 
     [SerializeField]
     private TextMeshPro buttonText;
@@ -53,17 +53,14 @@ public class UpdateButton : MonoBehaviour
 
     private void SetupButton()
     {
-        // Setup background with rounded corners effect
         if (backgroundRenderer != null)
         {
             backgroundRenderer.color = normalColor;
             backgroundRenderer.sortingOrder = 5;
 
-            // Scale to create rounded rectangle appearance
             backgroundRenderer.transform.localScale = new Vector3(4f, 1.5f, 1f);
         }
 
-        // Setup icon
         if (iconRenderer != null)
         {
             iconRenderer.color = Color.white;
@@ -71,7 +68,6 @@ public class UpdateButton : MonoBehaviour
             iconRenderer.transform.localPosition = new Vector3(-0.5f, 0, -0.1f);
         }
 
-        // Setup text
         if (buttonText != null)
         {
             buttonText.text = "UPDATE";
@@ -83,7 +79,6 @@ public class UpdateButton : MonoBehaviour
             buttonText.transform.localPosition = new Vector3(0f, 0, -0.1f);
         }
 
-        // Setup collider
         if (buttonCollider == null)
         {
             buttonCollider = gameObject.AddComponent<BoxCollider2D>();
@@ -97,11 +92,9 @@ public class UpdateButton : MonoBehaviour
         if (!isInteractable)
             return;
 
-        // Visual feedback
         backgroundRenderer.color = pressedColor;
         transform.DOScale(originalScale * clickScale, animationDuration).SetEase(Ease.OutQuart);
 
-        // Rotate icon for loading effect
         if (iconRenderer != null)
         {
             iconRenderer.transform.DORotate(new Vector3(0, 0, 180), animationDuration);
@@ -116,7 +109,6 @@ public class UpdateButton : MonoBehaviour
         backgroundRenderer.color = normalColor;
         transform.DOScale(originalScale, animationDuration).SetEase(Ease.OutBack);
 
-        // Reset icon rotation
         if (iconRenderer != null)
         {
             iconRenderer.transform.DORotate(Vector3.zero, animationDuration);

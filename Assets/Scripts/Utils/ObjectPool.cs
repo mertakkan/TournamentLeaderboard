@@ -13,7 +13,6 @@ public class ObjectPool<T>
         this.prefab = prefab;
         this.parent = parent;
 
-        // Pre-instantiate objects
         for (int i = 0; i < initialSize; i++)
         {
             T obj = Object.Instantiate(prefab, parent);
@@ -32,7 +31,6 @@ public class ObjectPool<T>
         }
         else
         {
-            // Create new object if pool is empty
             T obj = Object.Instantiate(prefab, parent);
             obj.gameObject.SetActive(true);
             return obj;

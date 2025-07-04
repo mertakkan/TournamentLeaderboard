@@ -15,7 +15,6 @@ public class GameManager : MonoBehaviour
 
     private void SetupGame()
     {
-        // Create leaderboard view
         if (leaderboardViewPrefab != null)
         {
             leaderboardView = Instantiate(leaderboardViewPrefab);

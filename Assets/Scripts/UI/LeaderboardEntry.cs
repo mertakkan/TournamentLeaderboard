@@ -15,7 +15,7 @@ public class LeaderboardEntry : MonoBehaviour
     private SpriteRenderer profileIconRenderer;
 
     [SerializeField]
-    private SpriteRenderer borderRenderer; // Add border for Clash of Clans style
+    private SpriteRenderer borderRenderer;
 
     [SerializeField]
     private TextMeshPro rankText;
@@ -28,16 +28,16 @@ public class LeaderboardEntry : MonoBehaviour
 
     [Header("Colors - Clash of Clans Style")]
     [SerializeField]
-    private Color normalColor = new Color(0.95f, 0.9f, 0.8f, 1f); // Warm beige
+    private Color normalColor = new Color(0.95f, 0.9f, 0.8f, 1f);
 
     [SerializeField]
-    private Color currentPlayerColor = new Color(1f, 0.85f, 0.3f, 1f); // Golden
+    private Color currentPlayerColor = new Color(1f, 0.85f, 0.3f, 1f);
 
     [SerializeField]
-    private Color topRankColor = new Color(0.9f, 0.95f, 1f, 1f); // Light blue
+    private Color topRankColor = new Color(0.9f, 0.95f, 1f, 1f);
 
     [SerializeField]
-    private Color borderColor = new Color(0.4f, 0.3f, 0.2f, 1f); // Dark brown border
+    private Color borderColor = new Color(0.4f, 0.3f, 0.2f, 1f);
 
     [Header("Rank Colors")]
     [SerializeField]
@@ -57,7 +57,7 @@ public class LeaderboardEntry : MonoBehaviour
     private int maxNicknameLength = 10;
 
     [SerializeField]
-    private float nicknameMaxWidth = 2.5f; // Maximum width for nickname text
+    private float nicknameMaxWidth = 2.5f;
 
     [Header("Rank Text Scaling")]
     [SerializeField]
@@ -83,7 +83,6 @@ public class LeaderboardEntry : MonoBehaviour
 
     private void SetupTextProperties()
     {
-        // Setup rank text with dynamic scaling
         if (rankText != null)
         {
             rankText.fontSize = baseFontSize;
@@ -93,7 +92,6 @@ public class LeaderboardEntry : MonoBehaviour
             rankText.sortingOrder = 12;
         }
 
-        // Setup nickname text with proper constraints
         if (nicknameText != null)
         {
             nicknameText.fontSize = 6f;
@@ -105,7 +103,6 @@ public class LeaderboardEntry : MonoBehaviour
             nicknameText.overflowMode = TextOverflowModes.Truncate;
         }
 
-        // Setup score text
         if (scoreText != null)
         {
             scoreText.fontSize = 7f;
@@ -118,26 +115,22 @@ public class LeaderboardEntry : MonoBehaviour
 
     private void SetupVisualElements()
     {
-        // Setup background
         if (backgroundRenderer != null)
         {
             backgroundRenderer.sortingOrder = 5;
         }
 
-        // Setup border
         if (borderRenderer != null)
         {
             borderRenderer.color = borderColor;
             borderRenderer.sortingOrder = 6;
         }
 
-        // Setup rank background
         if (rankBackgroundRenderer != null)
         {
             rankBackgroundRenderer.sortingOrder = 8;
         }
 
-        // Setup profile icon
         if (profileIconRenderer != null)
         {
             profileIconRenderer.sortingOrder = 9;
@@ -159,20 +152,17 @@ public class LeaderboardEntry : MonoBehaviour
         if (playerData == null)
             return;
 
-        // Update rank with dynamic font scaling
         if (rankText != null)
         {
             rankText.text = playerData.rank.ToString();
             ScaleRankTextToFit();
         }
 
-        // Update nickname with proper truncation
         if (nicknameText != null)
         {
             SetNicknameWithConstraints(playerData.nickname);
         }
 
-        // Update score with proper formatting
         if (scoreText != null)
             scoreText.text = FormatScore(playerData.score);
     }
@@ -182,16 +172,13 @@ public class LeaderboardEntry : MonoBehaviour
         if (rankText == null || rankBackgroundRenderer == null)
             return;
 
-        // Get the available width/height from the rank background
-        float availableWidth = rankBackgroundRenderer.bounds.size.x * 0.8f; // 80% of background width
-        float availableHeight = rankBackgroundRenderer.bounds.size.y * 0.8f; // 80% of background height
+        float availableWidth = rankBackgroundRenderer.bounds.size.x * 0.8f;
+        float availableHeight = rankBackgroundRenderer.bounds.size.y * 0.8f;
 
-        // Start with base font size and scale down if needed
         float currentFontSize = baseFontSize;
         rankText.fontSize = currentFontSize;
         rankText.ForceMeshUpdate();
 
-        // Check if text fits within the available space
         while (
             (rankText.preferredWidth > availableWidth || rankText.preferredHeight > availableHeight)
             && currentFontSize > minFontSize
@@ -202,7 +189,6 @@ public class LeaderboardEntry : MonoBehaviour
             rankText.ForceMeshUpdate();
         }
 
-        // Ensure minimum font size
         if (currentFontSize < minFontSize)
         {
             rankText.fontSize = minFontSize;
@@ -214,17 +200,14 @@ public class LeaderboardEntry : MonoBehaviour
         if (nicknameText == null)
             return;
 
-        // First, try the original nickname
         nicknameText.text = nickname;
         nicknameText.ForceMeshUpdate();
 
-        // If it's too wide, truncate it
         if (nicknameText.preferredWidth > nicknameMaxWidth)
         {
             string truncated = nickname;
             int length = nickname.Length;
 
-            // Keep reducing until it fits
             while (nicknameText.preferredWidth > nicknameMaxWidth && length > 3)
             {
                 length--;
@@ -253,7 +236,6 @@ public class LeaderboardEntry : MonoBehaviour
         float bgWidth = backgroundRenderer.bounds.size.x;
         float bgHeight = backgroundRenderer.bounds.size.y;
 
-        // Position rank elements on the far left
         if (rankBackgroundRenderer != null)
         {
             rankBackgroundRenderer.transform.localPosition = new Vector3(-bgWidth * 0.4f, 0, 0);
@@ -263,22 +245,19 @@ public class LeaderboardEntry : MonoBehaviour
             rankText.transform.localPosition = new Vector3(-bgWidth * 0.4f, 0, -0.1f);
         }
 
-        // Position profile icon
         if (profileIconRenderer != null)
         {
             profileIconRenderer.transform.localPosition = new Vector3(-bgWidth * 0.2f, 0, 0);
         }
 
-        // Position nickname with proper spacing
         if (nicknameText != null)
         {
             nicknameText.transform.localPosition = new Vector3(-bgWidth * 0.05f, 0, -0.1f);
         }
 
-        // Position score on the right
         if (scoreText != null)
         {
-            scoreText.transform.localPosition = new Vector3(bgWidth * 0.4f, 0, -0.1f);
+            scoreText.transform.localPosition = new Vector3(bgWidth * 0.35f, 0, -0.1f);
         }
     }
 
@@ -298,7 +277,6 @@ public class LeaderboardEntry : MonoBehaviour
             textColor = new Color(0.1f, 0.1f, 0.2f);
         }
 
-        // Apply colors
         if (backgroundRenderer != null)
             backgroundRenderer.color = bgColor;
 
@@ -308,7 +286,6 @@ public class LeaderboardEntry : MonoBehaviour
         if (scoreText != null)
             scoreText.color = textColor;
 
-        // Update rank colors
         if (rankBackgroundRenderer != null && playerData != null)
         {
             rankBackgroundRenderer.color = GetRankColor(playerData.rank);
@@ -319,12 +296,11 @@ public class LeaderboardEntry : MonoBehaviour
             profileIconRenderer.color = GetProfileIconColor(playerData.rank);
         }
 
-        // Update border for current player
         if (borderRenderer != null)
         {
             if (isCurrentPlayer)
             {
-                borderRenderer.color = new Color(1f, 0.8f, 0.2f, 1f); // Golden border
+                borderRenderer.color = new Color(1f, 0.8f, 0.2f, 1f);
             }
             else
             {

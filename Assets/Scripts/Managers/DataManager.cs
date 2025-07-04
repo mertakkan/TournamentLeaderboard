@@ -1,11 +1,20 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 
 public class DataManager : MonoBehaviour
 {
+    [Header("Data Settings")]
+    [SerializeField]
+    private string jsonFileName = "tournament_data.json";
+
+    [SerializeField]
+    private bool useStreamingAssets = true;
+
     [SerializeField]
     private TextAsset jsonFile;
+
     private TournamentData tournamentData;
     private List<PlayerData> originalPlayers;
 
@@ -31,18 +40,48 @@ public class DataManager : MonoBehaviour
 
     private void LoadTournamentData()
     {
-        if (jsonFile != null)
+        string jsonString = null;
+
+        if (useStreamingAssets)
         {
-            string jsonString = jsonFile.text;
-            tournamentData = JsonUtility.FromJson<TournamentData>(jsonString);
+            string filePath = Path.Combine(Application.streamingAssetsPath, jsonFileName);
+
+            if (File.Exists(filePath))
+            {
+                jsonString = File.ReadAllText(filePath);
+                Debug.Log($"Loaded tournament data from StreamingAssets: {filePath}");
+            }
+            else
+            {
+                Debug.LogWarning($"JSON file not found at: {filePath}");
+            }
         }
-        else
+        else if (jsonFile != null)
         {
-            // Generate sample data if no JSON file is provided
+            jsonString = jsonFile.text;
+            Debug.Log("Loaded tournament data from TextAsset");
+        }
+
+        if (!string.IsNullOrEmpty(jsonString))
+        {
+            try
+            {
+                tournamentData = JsonUtility.FromJson<TournamentData>(jsonString);
+                Debug.Log($"Successfully parsed {tournamentData.players.Count} players from JSON");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Failed to parse JSON: {e.Message}");
+                tournamentData = null;
+            }
+        }
+
+        if (tournamentData == null || tournamentData.players.Count == 0)
+        {
+            Debug.LogWarning("JSON loading failed, generating sample data...");
             GenerateSampleData();
         }
 
-        // Store original data for reference
         originalPlayers = new List<PlayerData>();
         foreach (var player in tournamentData.players)
         {
@@ -56,11 +95,9 @@ public class DataManager : MonoBehaviour
     {
         tournamentData = new TournamentData();
 
-        // Add the "me" player with a random starting rank for better demo
-        int meScore = Random.Range(400, 1200); // Lower initial score for better rank changes
+        int meScore = Random.Range(400, 1200);
         tournamentData.players.Add(new PlayerData("me", "Me", meScore));
 
-        // More realistic player names for testing
         string[] sampleNames =
         {
             "DragonSlayer",
@@ -93,13 +130,12 @@ public class DataManager : MonoBehaviour
             "Master"
         };
 
-        // Generate 999 other players with wider score range
         for (int i = 1; i < 1000; i++)
         {
             string id = $"user_{i:000}";
             string nickname =
                 sampleNames[Random.Range(0, sampleNames.Length)] + Random.Range(1, 999);
-            int score = Random.Range(200, 2500); // Wider range for better rank distribution
+            int score = Random.Range(200, 2500);
 
             tournamentData.players.Add(new PlayerData(id, nickname, score));
         }
@@ -123,19 +159,17 @@ public class DataManager : MonoBehaviour
         {
             if (player.IsCurrentPlayer)
             {
-                // Give "me" player a bigger chance for significant score increases
-                if (Random.Range(0f, 1f) < 0.8f) // 80% chance for me to get an update
+                if (Random.Range(0f, 1f) < 0.8f)
                 {
-                    int increase = Random.Range(50, 400); // Larger increases for dramatic rank changes
+                    int increase = Random.Range(50, 400);
                     player.score += increase;
                 }
             }
             else
             {
-                // Other players get smaller, less frequent updates
-                if (Random.Range(0f, 1f) < 0.25f) // 25% chance for others
+                if (Random.Range(0f, 1f) < 0.25f)
                 {
-                    int increase = Random.Range(5, 150); // Smaller increases
+                    int increase = Random.Range(5, 150);
                     player.score += increase;
                 }
             }

@@ -23,10 +23,10 @@ public class LeaderboardView : MonoBehaviour
     private float animationDuration = 0.6f;
 
     [SerializeField]
-    private int minRankChangeForScrollAnimation = 5; // Minimum rank change to trigger scroll animation
+    private int minRankChangeForScrollAnimation = 5;
 
     [SerializeField]
-    private int maxAnimationSteps = 15; // Maximum number of animation steps
+    private int maxAnimationSteps = 15;
 
     [Header("Layout")]
     [SerializeField]
@@ -48,7 +48,6 @@ public class LeaderboardView : MonoBehaviour
     private int currentPlayerIndex;
     private bool isAnimating = false;
 
-    // Better position tracking
     private Dictionary<int, Vector3> slotPositions = new Dictionary<int, Vector3>();
 
     public static LeaderboardView Instance { get; private set; }
@@ -105,7 +104,6 @@ public class LeaderboardView : MonoBehaviour
             backgroundRenderer = bgObj.AddComponent<SpriteRenderer>();
         }
 
-        // Clash of Clans style background
         backgroundRenderer.color = new Color(0.15f, 0.25f, 0.4f, 0.9f);
         backgroundRenderer.transform.localScale = new Vector3(14f, 18f, 1f);
         backgroundRenderer.sortingOrder = -1;
@@ -123,7 +121,7 @@ public class LeaderboardView : MonoBehaviour
     private void CreateUpdateButton()
     {
         updateButton = Instantiate(updateButtonPrefab, uiContainer);
-        updateButton.transform.position = new Vector3(0, 8f, 0);
+        updateButton.transform.position = new Vector3(0, 7f, 0);
         updateButton.OnButtonClicked += OnUpdateButtonClicked;
     }
 
@@ -156,15 +154,12 @@ public class LeaderboardView : MonoBehaviour
 
     private void DisplayVisibleEntries()
     {
-        // Clear all existing entries
         entryPool.ReturnAll(activeEntries);
         activeEntries.Clear();
 
-        // Calculate visible range
         int startIndex = CalculateStartIndex(currentPlayerIndex);
         int endIndex = Mathf.Min(currentPlayers.Count, startIndex + visibleEntries);
 
-        // Create entries for visible range
         for (int i = startIndex; i < endIndex; i++)
         {
             CreateEntryAtSlot(i, i - startIndex);
@@ -212,15 +207,12 @@ public class LeaderboardView : MonoBehaviour
         isAnimating = true;
         updateButton.SetInteractable(false);
 
-        // Get updated data
         DataManager.Instance.UpdateScoresRandomly();
         var newSortedPlayers = DataManager.Instance.GetSortedPlayers();
         int newPlayerIndex = newSortedPlayers.FindIndex(p => p.IsCurrentPlayer);
 
-        // Perform the update with scroll animation if needed
         yield return StartCoroutine(PerformLeaderboardUpdate(newSortedPlayers, newPlayerIndex));
 
-        // Update state
         currentPlayers = new List<PlayerData>(newSortedPlayers);
         currentPlayerIndex = newPlayerIndex;
 
@@ -233,7 +225,6 @@ public class LeaderboardView : MonoBehaviour
         int oldPlayerIndex = currentPlayerIndex;
         int rankChange = Mathf.Abs(newPlayerIndex - oldPlayerIndex);
 
-        // Use scroll-through animation for significant rank changes
         if (rankChange >= minRankChangeForScrollAnimation && currentPlayerEntry != null)
         {
             yield return StartCoroutine(
@@ -242,7 +233,6 @@ public class LeaderboardView : MonoBehaviour
         }
         else
         {
-            // Use existing logic for small changes
             int newStartIndex = CalculateStartIndex(newPlayerIndex);
             yield return StartCoroutine(
                 PerformStandardUpdate(newPlayers, newPlayerIndex, newStartIndex)
@@ -256,11 +246,9 @@ public class LeaderboardView : MonoBehaviour
         int newPlayerIndex
     )
     {
-        // Calculate animation parameters
         int totalSteps = Mathf.Min(Mathf.Abs(newPlayerIndex - oldPlayerIndex), maxAnimationSteps);
         float stepDuration = animationDuration / totalSteps;
 
-        // Animate through intermediate positions
         for (int step = 1; step <= totalSteps; step++)
         {
             float progress = (float)step / totalSteps;
@@ -269,13 +257,11 @@ public class LeaderboardView : MonoBehaviour
             );
             int intermediateStartIndex = CalculateStartIndex(intermediateIndex);
 
-            // Update view for this intermediate position
             yield return StartCoroutine(
                 UpdateViewForAnimationStep(newPlayers, intermediateStartIndex, stepDuration)
             );
         }
 
-        // Final positioning with highlight
         int finalStartIndex = CalculateStartIndex(newPlayerIndex);
         yield return StartCoroutine(
             PerformStandardUpdate(newPlayers, newPlayerIndex, finalStartIndex, true)
@@ -288,7 +274,6 @@ public class LeaderboardView : MonoBehaviour
         float duration
     )
     {
-        // Create mapping of old entries by player ID
         var entryMap = new Dictionary<string, LeaderboardEntry>();
         foreach (var entry in activeEntries)
         {
@@ -298,13 +283,10 @@ public class LeaderboardView : MonoBehaviour
             }
         }
 
-        // Clear active entries list but keep the objects
         activeEntries.Clear();
 
-        // Calculate new visible range
         int endIndex = Mathf.Min(newPlayers.Count, startIndex + visibleEntries);
 
-        // Update and position all entries
         var animations = new List<Tween>();
 
         for (int i = startIndex; i < endIndex; i++)
@@ -317,14 +299,12 @@ public class LeaderboardView : MonoBehaviour
 
             if (entryMap.ContainsKey(player.id))
             {
-                // Reuse existing entry
                 entry = entryMap[player.id];
                 entry.UpdateData(player);
                 entryMap.Remove(player.id);
             }
             else
             {
-                // Create new entry
                 entry = entryPool.Get();
                 entry.SetupEntry(player, player.IsCurrentPlayer);
             }
@@ -336,7 +316,6 @@ public class LeaderboardView : MonoBehaviour
                 currentPlayerEntry = entry;
             }
 
-            // Animate to target position
             if (Vector3.Distance(entry.transform.position, targetPosition) > 0.1f)
             {
                 var tween = entry.AnimateToPosition(targetPosition, duration);
@@ -348,19 +327,16 @@ public class LeaderboardView : MonoBehaviour
             }
         }
 
-        // Return unused entries to pool
         foreach (var unusedEntry in entryMap.Values)
         {
             entryPool.Return(unusedEntry);
         }
 
-        // Wait for animations to complete
         if (animations.Count > 0)
         {
             yield return new WaitForSeconds(duration);
         }
 
-        // Ensure positions are exact to prevent overlaps
         for (int i = 0; i < activeEntries.Count; i++)
         {
             if (i < slotPositions.Count)
@@ -377,7 +353,6 @@ public class LeaderboardView : MonoBehaviour
         bool showHighlight = false
     )
     {
-        // Create mapping of old entries by player ID
         var entryMap = new Dictionary<string, LeaderboardEntry>();
         foreach (var entry in activeEntries)
         {
@@ -387,13 +362,10 @@ public class LeaderboardView : MonoBehaviour
             }
         }
 
-        // Clear active entries list but keep the objects
         activeEntries.Clear();
 
-        // Calculate new visible range
         int endIndex = Mathf.Min(newPlayers.Count, startIndex + visibleEntries);
 
-        // Phase 1: Update and position all entries
         var animations = new List<Tween>();
 
         for (int i = startIndex; i < endIndex; i++)
@@ -406,14 +378,12 @@ public class LeaderboardView : MonoBehaviour
 
             if (entryMap.ContainsKey(player.id))
             {
-                // Reuse existing entry
                 entry = entryMap[player.id];
                 entry.UpdateData(player);
                 entryMap.Remove(player.id);
             }
             else
             {
-                // Create new entry
                 entry = entryPool.Get();
                 entry.SetupEntry(player, player.IsCurrentPlayer);
             }
@@ -425,7 +395,6 @@ public class LeaderboardView : MonoBehaviour
                 currentPlayerEntry = entry;
             }
 
-            // Animate to target position
             if (Vector3.Distance(entry.transform.position, targetPosition) > 0.1f)
             {
                 var tween = entry.AnimateToPosition(targetPosition, animationDuration);
@@ -437,25 +406,21 @@ public class LeaderboardView : MonoBehaviour
             }
         }
 
-        // Return unused entries to pool
         foreach (var unusedEntry in entryMap.Values)
         {
             entryPool.Return(unusedEntry);
         }
 
-        // Phase 2: Highlight current player if requested
         if (showHighlight && currentPlayerEntry != null)
         {
             currentPlayerEntry.PlayHighlightAnimation();
         }
 
-        // Wait for animations to complete
         if (animations.Count > 0)
         {
             yield return new WaitForSeconds(animationDuration);
         }
 
-        // Ensure all positions are exact
         for (int i = 0; i < activeEntries.Count; i++)
         {
             if (i < slotPositions.Count)
